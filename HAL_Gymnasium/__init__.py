@@ -4,7 +4,7 @@ register(
     id="HAL_Gymnasium/HAL_run",
     entry_point="HAL_Gymnasium.envs.HAL_run:HALEnv",
     max_episode_steps=1000,
-    reward_threshold=4800.0,
+    reward_threshold=5000.0,
 )
 
 register(
@@ -17,7 +17,7 @@ register(
 register(
     id="HAL_Gymnasium/HAL_jump",
     entry_point="HAL_Gymnasium.envs.HAL_jump:HALEnv",
-    max_episode_steps=50,
+    max_episode_steps=30,
     reward_threshold=4800.0,
 )
 

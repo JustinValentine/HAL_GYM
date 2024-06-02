@@ -102,11 +102,11 @@
     </worldbody>
 
     <actuator>
-        <motor gear="15" joint="spine" name="spine"/> <!-- Reduced from 100 -->
-        <motor gear="20" joint="bthigh" name="bthigh"/> <!-- Reduced from 120 -->
-        <motor gear="25" joint="bshin" name="bshin"/> <!-- Reduced from 90 -->
-        <motor gear="20" joint="fthigh" name="fthigh"/> <!-- Kept the same for demonstration, adjust as needed -->
-        <motor gear="25" joint="fshin" name="fshin"/> <!-- Reduced from 60 -->
+        <motor gear="20" joint="spine" name="spine"/> <!-- Reduced from 100 -->
+        <motor gear="25" joint="bthigh" name="bthigh"/> <!-- Reduced from 120 -->
+        <motor gear="30" joint="bshin" name="bshin"/> <!-- Reduced from 90 -->
+        <motor gear="25" joint="fthigh" name="fthigh"/> <!-- Kept the same for demonstration, adjust as needed -->
+        <motor gear="30" joint="fshin" name="fshin"/> <!-- Reduced from 60 -->
     </actuator>
 
 </mujoco>

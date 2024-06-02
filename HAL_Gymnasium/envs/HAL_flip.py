@@ -1,15 +1,12 @@
 import numpy as np
-
 from gymnasium import utils
 from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.spaces import Box
-
 import mujoco
 
 DEFAULT_CAMERA_CONFIG = {
     "distance": 1.5,
 }
-
 
 class HALEnv(MujocoEnv, utils.EzPickle):
     metadata = {
@@ -23,9 +20,9 @@ class HALEnv(MujocoEnv, utils.EzPickle):
 
     def __init__(
         self,
-        forward_reward_weight=1.0,
-        ctrl_cost_weight=0.5,
-        reset_noise_scale=0.1,
+        forward_reward_weight=1.2,
+        ctrl_cost_weight=0.15,
+        reset_noise_scale=0.005,
         exclude_current_positions_from_observation=True,
         **kwargs,
     ):
@@ -67,67 +64,56 @@ class HALEnv(MujocoEnv, utils.EzPickle):
         )
 
     def control_cost(self, action):
-        weights = np.ones(action.shape)  
-        spine_index = 0 
-        higher_weight_for_spine = 1.0
-        weights[spine_index] = higher_weight_for_spine 
-        
-        control_cost = self._ctrl_cost_weight * np.sum(weights * np.square(action))
-        return control_cost
-
+        return self._ctrl_cost_weight * np.sum(np.square(action))
 
     def _check_ground_contact(self):
-        floor_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'floor')  
-        torso_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'front_torso_center_geom')
-        fthigh_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'fthigh_geom') 
-        fthigh_pully_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'fthigh_pully_geom') 
-        bthigh_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'bthigh_geom') 
-        bthigh_pully_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'bthigh_pully_geom') 
+        floor_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'floor')
+        contact_force_threshold = 50  # Define a threshold for significant contact force
+        total_force = 0.0
 
         for i in range(self.data.ncon):
             contact = self.data.contact[i]
-            if (contact.geom1 == floor_id and contact.geom2 in [fthigh_id, fthigh_pully_id, bthigh_id, bthigh_pully_id, torso_id]) or \
-            (contact.geom2 == floor_id and contact.geom1 in [fthigh_id, fthigh_pully_id, bthigh_id, bthigh_pully_id, torso_id]):
-                return True
-        
-        return False
-    
+            if contact.geom1 == floor_id or contact.geom2 == floor_id:
+                contact_force = np.linalg.norm(self.data.cfrc_ext[contact.geom1])
+                total_force += contact_force
+
+        return total_force
+
     def step(self, action):
-        robot_rotation_before = self.data.qpos[2]
         self.do_simulation(action, self.frame_skip)
-        robot_rotation_after = self.data.qpos[2]
-        rotational_velocity = (robot_rotation_before - robot_rotation_after) / self.dt
 
+        robot_rotation = self.data.qpos[2]  # rooty joint rotation
+        spine_angle = self.data.qpos[3]     # spine joint angle
+        completed_flip = np.abs(robot_rotation) >= 2 * np.pi
         ctrl_cost = self.control_cost(action)
-        ground_collision = self._check_ground_contact()
+        ground_force = self._check_ground_contact()
 
-        if robot_rotation_after < 0:
-            flip_reward = -1*robot_rotation_after
-            flip_cost = 0 
-        elif robot_rotation_after == -2*np.pi:
-            flip_reward = 1
-            flip_cost = 0 
-        else:
-            flip_reward = 0
-            flip_cost = 1
+        # Dense Reward Components
+        rotation_reward = min(abs(robot_rotation / (2 * np.pi)), 1.0)  # Progress towards a full rotation
+        spine_stability_reward = 1.0 - abs(spine_angle) / np.pi       # Encourage spine to stay stable
+        ground_force_penalty = 0.01 * ground_force                    # Penalize excessive ground force
 
-        collision_cost = 5 if ground_collision else 0
+        # Aggregate Reward
+        reward = rotation_reward - ctrl_cost - ground_force_penalty + spine_stability_reward
+
+        if completed_flip:
+            reward += 100  # Large reward for completing a backflip
 
         observation = self._get_obs()
+        terminated = completed_flip  # End episode after completing a backflip
 
-        reward = flip_reward - ctrl_cost - collision_cost - flip_cost
-        terminated = False
         info = {
-            "reward_ctrl": -ctrl_cost,
-            "rotational_velocity": rotational_velocity,
-            "flip reward": flip_reward,
-            "robot_rotation_before": robot_rotation_before,
-            "robot_rotation_after": robot_rotation_after,
+            "robot_rotation": robot_rotation,
+            "completed_flip": completed_flip,
+            "control_cost": ctrl_cost,
+            "ground_force": ground_force,
+            "rotation_reward": rotation_reward,
+            "spine_stability_reward": spine_stability_reward,
+            "ground_force_penalty": ground_force_penalty,
         }
 
         if self.render_mode == "human":
             self.render()
-
         return observation, reward, terminated, False, info
 
     def _get_obs(self):
