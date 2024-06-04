@@ -22,9 +22,9 @@ class HALEnv(MujocoEnv, utils.EzPickle):
 
     def __init__(
         self,
-        forward_reward_weight=2.5,
-        ctrl_cost_weight=0.1,
-        z_vel_weigh = 0.9,
+        forward_reward_weight=5,
+        ctrl_cost_weight=0.2,
+        z_vel_weigh = 4.5,
         reset_noise_scale=0.1,
         exclude_current_positions_from_observation=True,
         heighest_jump=-0.37,    
@@ -73,8 +73,9 @@ class HALEnv(MujocoEnv, utils.EzPickle):
             **kwargs,
         )
 
-        self.last_position = None
-        self.stationary_steps = 0
+        self.has_jumped = False 
+        self.inital_touch = False
+        self.max_height = 0
 
     def control_cost(self, action):
         weights = np.ones(action.shape)  
@@ -92,6 +93,8 @@ class HALEnv(MujocoEnv, utils.EzPickle):
         fthigh_pully_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'fthigh_pully_geom') 
         bthigh_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'bthigh_geom') 
         bthigh_pully_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'bthigh_pully_geom') 
+        f_foot_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'fshin_geom')
+        b_foot_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'bshin_geom')
 
         for i in range(self.data.ncon):
             contact = self.data.contact[i]
@@ -101,56 +104,88 @@ class HALEnv(MujocoEnv, utils.EzPickle):
         
         return False
     
+    def _target_trajectory(self):
+        # stay at (0.37) for 2 seconds 
+
+        # lower to 0.2 over 0.5 secopnds 
+
+        # Jump 
+
+        1/2mv^2 
+
+        # stand at 0.37 for 2 seconds
+
+    
+    def _check_feet_on_ground(self):
+        floor_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'floor')
+        f_foot_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'fshin_geom')
+        b_foot_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'bshin_geom')
+
+        f_foot, b_foot = False, False
+
+        for i in range(self.data.ncon):
+            contact = self.data.contact[i]
+            if (contact.geom1 == floor_id and contact.geom2 == f_foot_id) or \
+            (contact.geom2 == floor_id and contact.geom1 == f_foot_id):
+                f_foot = True
+            if (contact.geom1 == floor_id and contact.geom2 == b_foot_id) or \
+            (contact.geom2 == floor_id and contact.geom1 == b_foot_id):
+                b_foot = True
+        
+        return f_foot and b_foot
+
+    
     def step(self, action):
         z_position_before = self.data.qpos[1] + 0.652
         self.do_simulation(action, self.frame_skip)
         z_position_after = self.data.qpos[1] + 0.652
         robot_rotation = np.abs(self.data.qpos[2])
 
-        # z_position_after = self.data.qpos[1]
+        if z_position_after > self.max_height:
+            self.max_height = z_position_after
 
         z_vel = (z_position_after - z_position_before)/self.dt
 
-        jump_reward = (self._height_reward_weight * z_position_after)**2
+        jump_reward = (self._height_reward_weight * self.max_height)**2
+
+        ground_collision = self._check_ground_contact()
+        collision_cost = 5 if ground_collision else 0
 
         if z_vel >= 0:
-            vel_reward = self._z_vel_weigh * z_vel
+            vel_reward = (self._z_vel_weigh * z_vel)**2
         else: 
             vel_reward = 0
 
-        # robot_rotation = np.abs(self.data.qpos[2])
-        # spine_angle = self.data.qpos[3]
-        ctrl_cost = self.control_cost(action)
-        # ground_collision = self._check_ground_contact()
+        # if self._check_feet_on_ground() == True:
+        #     self.inital_touch = True
 
-        # # forward_reward = self._forward_reward_weight * z_velocity
-        flip_cost = 1 if robot_rotation >= np.pi else 0
-        # collision_cost = 1 if ground_collision else 0
-        # spine_cost = 0.5 * abs(spine_angle) if spine_angle < 0.0 else 0
+        # if self._check_feet_on_ground() == False and self.inital_touch:
+        #     air_bonus = 3
+        #     self.has_jumped = True
+        # else:
+        #     air_bonus = 0
 
-        observation = self._get_obs()
-        reward = jump_reward + vel_reward - ctrl_cost -flip_cost #- collision_cost
+        # if self.has_jumped and self._check_ground_contact():
+        #     terminated = True
+        # else:
+        #     terminated = False
+
         terminated = False
 
-        # Check if the robot has moved
-        current_position = self.data.qpos[1]
-        if self.last_position is not None:
-            if np.abs(current_position - self.last_position) < 0.01:  # Threshold for movement
-                self.stationary_steps += 1
-            else:
-                self.stationary_steps = 0
-        self.last_position = current_position
+        robot_rotation_cost = 0.1*np.abs(self.data.qpos[2])
+        ctrl_cost = self.control_cost(action)
 
-        # Terminate the episode if the robot has not moved for 1 second
-        # if self.stationary_steps >= int(1 / (self.dt * self.frame_skip)):
-        #     # reward = -10
-        #     terminated = True
+        observation = self._get_obs()   
+        reward = jump_reward + vel_reward - ctrl_cost - robot_rotation_cost - collision_cost #- collision_cost + vel_reward + air_bonus 
+
 
         info = {
             "jump_reward": jump_reward,
             "vel_reward": vel_reward,
             "ctrl_cost": ctrl_cost,
-
+            "reward": reward,
+            "robot_rotation_cost": robot_rotation_cost,
+            "collision_cost":collision_cost,
         }
 
         if self.render_mode == "human":
@@ -172,12 +207,15 @@ class HALEnv(MujocoEnv, utils.EzPickle):
         noise_low = -self._reset_noise_scale
         noise_high = self._reset_noise_scale
 
+        self.has_jumped = False 
+        self.inital_touch = False
+        self.max_height = 0
+
         qpos = self.init_qpos = np.array([0, -0.37, -0.314, 0.54, 0.39, -1.34, 0.96, -1.4])
         qvel = self.init_qvel
 
         self.set_state(qpos, qvel)
 
         observation = self._get_obs()
-        self.last_position = None
-        self.stationary_steps = 0
+
         return observation

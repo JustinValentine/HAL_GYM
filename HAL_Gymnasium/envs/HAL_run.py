@@ -24,7 +24,7 @@ class HALEnv(MujocoEnv, utils.EzPickle):
     def __init__(
         self,
         forward_reward_weight=1.2,
-        ctrl_cost_weight=0.15,
+        ctrl_cost_weight=0.1,
         reset_noise_scale=0.005,
         exclude_current_positions_from_observation=True,
         **kwargs,

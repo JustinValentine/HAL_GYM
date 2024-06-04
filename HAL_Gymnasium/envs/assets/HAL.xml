@@ -30,7 +30,7 @@
 
 -->
 <mujoco model="cheetah">
-    <compiler angle="radian" coordinate="local" inertiafromgeom="true" settotalmass="14"/>
+    <compiler angle="radian" coordinate="local" inertiafromgeom="true" settotalmass="5"/>
 
     <default>
         <joint armature=".1" damping=".01" limited="true" solimplimit="0 .8 .03" solreflimit=".02 1" stiffness="8"/>
