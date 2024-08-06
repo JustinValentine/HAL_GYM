@@ -8,6 +8,7 @@ HAL_Gymnasium.egg-info/requires.txt
 HAL_Gymnasium.egg-info/top_level.txt
 HAL_Gymnasium/envs/HAL_flip.py
 HAL_Gymnasium/envs/HAL_jump.py
+HAL_Gymnasium/envs/HAL_jump_play.py
 HAL_Gymnasium/envs/HAL_run.py
 HAL_Gymnasium/envs/HAL_walk.py
 HAL_Gymnasium/envs/half_cheetah_v6.py

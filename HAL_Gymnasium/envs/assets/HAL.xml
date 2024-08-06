@@ -64,17 +64,17 @@
             <geom quat="0 0 0.7071068 0.7071068" type="cylinder" name="front_torso_center_geom" size="0.05 0.025" pos="0 0 0"  rgba="0.8 0.5 0.2 1"/>
 
             <body name="front_torso" pos="0 0 0">
-                <joint name="spine" damping="0.5" type="hinge" axis="0 1 0" pos="0 0 0" range="-2 2" stiffness="8"/>
+                <joint name="spine" damping="0.1" type="hinge" axis="0 1 0" pos="0 0 0" range="-2 2" stiffness="4"/>
                 <geom fromto="0 0 0 .195586 0 0" rgba="0.141 0.141 0.141 1" name="front_torso_geom" size="0.01" type="capsule"/>
                 <geom quat="0 0 0.7071068 0.7071068" rgba="0.141 0.141 0.141 1" type="cylinder" size="0.046 0.01" pos="0.119488 0.001 0" friction="1.0 .1 .1"/>
 
                 <body name="fthigh" pos=".195586 0 0">
-                    <joint axis="0 1 0" damping="0.3" name="fthigh" pos="0 0 0" range="-3 3" stiffness="2" type="hinge"/>
+                    <joint axis="0 1 0" damping="0.1" name="fthigh" pos="0 0 0" range="-3 3" stiffness="1" type="hinge"/>
                     <geom quat="0 0 0.7071068 0.7071068" rgba="0.329 0.329 0.329 1" name="fthigh_pully_geom" type="cylinder" size="0.0585 0.01" pos="0.01 0 0"/>
                     <geom quat="0 0 0.7071068 0.7071068" rgba="0.329 0.329 0.329 1" name="fthigh_geom" pos="0.01 -0.02 0" type="mesh" mesh="thigh_mesh" friction="1.0 .1 .1"/> 
                     
                     <body name="fshin" pos="0.01 -0.02 0">
-                        <joint axis="0 1 0" damping="0.3" name="fshin" pos="0 0 -0.175026" range="-2.8 2.8" stiffness="2" type="hinge"/>
+                        <joint axis="0 1 0" damping="0.1" name="fshin" pos="0 0 -0.175026" range="-2.8 2.8" stiffness="1" type="hinge"/>
                         <geom quat="0 0 0.7071068 0.7071068" name="fshin_geom" pos="0 0 0" rgba="0.51 0.51 0.51 1" type="mesh" mesh="shin_mesh" friction="2.5 .1 .1"/>
                     </body>
 
@@ -86,12 +86,12 @@
                 <geom quat="0 0 0.7071068 0.7071068" rgba="0.141 0.141 0.141 1" type="cylinder" size="0.046 0.01" pos="-0.119488 0.001 0"/>
 
                 <body name="bthigh" pos="-.195586 0 0">
-                    <joint axis="0 1 0" damping="0.3" name="bthigh" pos="0 0 0" range="-3 3" stiffness="2" type="hinge"/>
+                    <joint axis="0 1 0" damping="0.1" name="bthigh" pos="0 0 0" range="-3 3" stiffness="1" type="hinge"/>
                     <geom quat="0 0 0.7071068 0.7071068" rgba="0.329 0.329 0.329 1" name="bthigh_pully_geom" type="cylinder" size="0.0585 0.01" pos="-0.01 0 0" />
                     <geom quat="0 0 0.7071068 0.7071068" rgba="0.329 0.329 0.329 1" name="bthigh_geom" pos="-0.01 -0.02 0" type="mesh" mesh="thigh_mesh" friction="1.0 .1 .1"/> 
 
                     <body name="bshin" pos="-0.01 -0.02 0">
-                        <joint axis="0 1 0" damping="0.3" name="bshin" pos="0 0 -0.175026" range="-2.8 2.8" stiffness="2" type="hinge"/>
+                        <joint axis="0 1 0" damping="0.1" name="bshin" pos="0 0 -0.175026" range="-2.8 2.8" stiffness="1" type="hinge"/>
                         <geom quat="0 0 0.7071068 0.7071068" name="bshin_geom" pos="0 0 0" rgba="0.51 0.51 0.51 1" type="mesh" mesh="shin_mesh" friction="2.5 .1 .1"/>
                     </body>
 

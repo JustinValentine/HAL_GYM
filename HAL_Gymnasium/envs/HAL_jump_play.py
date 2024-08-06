@@ -127,23 +127,13 @@ class HALEnv(MujocoEnv, utils.EzPickle):
 
         rotation_cost = 0.3 * np.abs(robot_rotation)
         ctrl_cost = 1.3 * self.control_cost(action)
-        z_velocity_reward = 3.5 * (z_velocity) ** 2
-        jerk_cost = 0.00000002 * self.jerk_cost()
+        z_velocity_reward = 3.0 * (z_velocity) ** 2
+        jerk_cost = 0.00000001 * self.jerk_cost()
 
         observation = self._get_obs()   
         reward = z_velocity_reward - ctrl_cost - rotation_cost - jerk_cost
         
-        if any(pos > 0.5 for pos in [fthigh_pos, bthigh_pos]):
-            self.termination_case = 1
-            terminated = True
-        elif robot_rotation > 0.5:
-            self.termination_case = 2
-            terminated = True
-        elif abs(spine_pos) > 1.5:
-            self.termination_case = 3
-            terminated = True
-        else:
-            terminated = False
+        terminated = False
 
         info = {
             "z_velocity_reward": z_velocity_reward,

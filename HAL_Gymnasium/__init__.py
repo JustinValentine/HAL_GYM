@@ -21,3 +21,10 @@ register(
     reward_threshold=4800.0,
 )
 
+register(
+    id="HAL_Gymnasium/HAL_jump_play",
+    entry_point="HAL_Gymnasium.envs.HAL_jump_play:HALEnv",
+    max_episode_steps=40,
+    reward_threshold=4800.0,
+)
+
