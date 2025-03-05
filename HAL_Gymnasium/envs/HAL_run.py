@@ -1,3 +1,4 @@
+from os import path
 import numpy as np
 
 from gymnasium import utils
@@ -12,11 +13,16 @@ DEFAULT_CAMERA_CONFIG = {
 
 
 class HALEnv(MujocoEnv, utils.EzPickle):
+    """ HAL running environment.
+
+    Used half_cheetah_v4.py in gymnasium as a reference.
+    """
     metadata = {
         "render_modes": [
             "human",
             "rgb_array",
             "depth_array",
+            "rgbd_tuple"
         ],
         "render_fps": 20,
     }
@@ -59,40 +65,55 @@ class HALEnv(MujocoEnv, utils.EzPickle):
 
         MujocoEnv.__init__(
             self,
-            "/Users/justinvalentine/Documents/HAL_GYM/HAL_Gymnasium/envs/assets/HAL.xml",
+            path.join(path.dirname(__file__), "assets", "HAL.xml"),
             5,
             observation_space=observation_space,
             default_camera_config=DEFAULT_CAMERA_CONFIG,
             **kwargs,
         )
 
-    
     def control_cost(self, action):
-        weights = np.ones(action.shape)  
-        spine_index = 0 
+        weights = np.ones(action.shape)
+        spine_index = 0
         higher_weight_for_spine = 1.1
-        weights[spine_index] = higher_weight_for_spine 
-        
+        weights[spine_index] = higher_weight_for_spine
+
         control_cost = self._ctrl_cost_weight * np.sum(weights * np.square(action))
         return control_cost
 
-
     def _check_ground_contact(self):
-        floor_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'floor')  
-        torso_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'front_torso_center_geom')
-        fthigh_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'fthigh_geom') 
-        fthigh_pully_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'fthigh_pully_geom') 
-        bthigh_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'bthigh_geom') 
-        bthigh_pully_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'bthigh_pully_geom') 
+        floor_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "floor")
+        torso_id = mujoco.mj_name2id(
+            self.model, mujoco.mjtObj.mjOBJ_GEOM, "front_torso_center_geom"
+        )
+        fthigh_id = mujoco.mj_name2id(
+            self.model, mujoco.mjtObj.mjOBJ_GEOM, "fthigh_geom"
+        )
+        fthigh_pully_id = mujoco.mj_name2id(
+            self.model, mujoco.mjtObj.mjOBJ_GEOM, "fthigh_pully_geom"
+        )
+        bthigh_id = mujoco.mj_name2id(
+            self.model, mujoco.mjtObj.mjOBJ_GEOM, "bthigh_geom"
+        )
+        bthigh_pully_id = mujoco.mj_name2id(
+            self.model, mujoco.mjtObj.mjOBJ_GEOM, "bthigh_pully_geom"
+        )
 
         for i in range(self.data.ncon):
             contact = self.data.contact[i]
-            if (contact.geom1 == floor_id and contact.geom2 in [fthigh_id, fthigh_pully_id, bthigh_id, bthigh_pully_id, torso_id]) or \
-            (contact.geom2 == floor_id and contact.geom1 in [fthigh_id, fthigh_pully_id, bthigh_id, bthigh_pully_id, torso_id]):
+            if (
+                contact.geom1 == floor_id
+                and contact.geom2
+                in [fthigh_id, fthigh_pully_id, bthigh_id, bthigh_pully_id, torso_id]
+            ) or (
+                contact.geom2 == floor_id
+                and contact.geom1
+                in [fthigh_id, fthigh_pully_id, bthigh_id, bthigh_pully_id, torso_id]
+            ):
                 return True
-        
+
         return False
-    
+
     def step(self, action):
         x_position_before = self.data.qpos[0]
         self.do_simulation(action, self.frame_skip)
@@ -107,10 +128,10 @@ class HALEnv(MujocoEnv, utils.EzPickle):
         forward_reward = self._forward_reward_weight * x_velocity
         flip_cost = 5 if robot_rotation >= np.pi else 0
         collision_cost = 5 if ground_collision else 0
-        spine_cost = 0.5*abs(spine_angle) if spine_angle < 0.0 else 0
+        spine_cost = 0.5 * abs(spine_angle) if spine_angle < 0.0 else 0
 
         observation = self._get_obs()
-        reward = forward_reward - ctrl_cost - flip_cost - collision_cost #- spine_cost
+        reward = forward_reward - ctrl_cost - flip_cost - collision_cost  # - spine_cost
         terminated = False
 
         info = {
@@ -118,7 +139,7 @@ class HALEnv(MujocoEnv, utils.EzPickle):
             "x_velocity": x_velocity,
             "reward_run": forward_reward,
             "reward_ctrl": -ctrl_cost,
-            "collision_cost":-collision_cost,
+            "collision_cost": -collision_cost,
             "spine cost": -spine_cost,
             "spine": spine_angle,
         }
@@ -139,9 +160,7 @@ class HALEnv(MujocoEnv, utils.EzPickle):
         return observation
 
     def reset_model(self):
-        noise_low = -self._reset_noise_scale
-        noise_high = self._reset_noise_scale
-
+        """ set to a fixed state for now"""
         qpos = self.init_qpos = np.array([0, -0.42, 0, 0, 0.51, -1.37, 0.51, -1.37])
         qvel = self.init_qvel
 
